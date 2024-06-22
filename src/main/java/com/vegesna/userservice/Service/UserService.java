@@ -73,7 +73,7 @@ public class UserService {
 
         token.setExpiry(Timestamp.valueOf(futureDate));
         token.setUser(user);
-        token.setValid(true);
+        token.setActive(true);
         token.setValue(RandomStringUtils.randomAlphanumeric(128));
 
         return token;
@@ -82,16 +82,16 @@ public class UserService {
     public void signOut(SignOutRequestDTO signOutRequestDTO){
         Optional<Token> optionalToken = tokenRepo.findByValue(signOutRequestDTO.getValue());
         if(optionalToken.isEmpty()){
-            throw new RuntimeException("");
+            throw new RuntimeException("........");
         }
 
         Token token = optionalToken.get();
-        token.setValid(false);
+        token.setActive(false);
         tokenRepo.save(token);
     }
 
     public User validateToken(String value){
-       Optional<Token> optionalToken = tokenRepo.findByValueAndValidAndExpiryGreaterThan(value,true,new Date());
+       Optional<Token> optionalToken = tokenRepo.findByValueAndActiveAndExpiryGreaterThan(value,true,new Date());
         if(optionalToken.isEmpty()){
             throw new RuntimeException("Invalid token");
         }
