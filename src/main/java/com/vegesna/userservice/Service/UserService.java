@@ -7,7 +7,12 @@ import com.vegesna.userservice.Models.Token;
 import com.vegesna.userservice.Models.User;
 import com.vegesna.userservice.Repo.TokenRepo;
 import com.vegesna.userservice.Repo.UserRepo;
+import com.vegesna.userservice.Utils.EncDec;
+import jakarta.mail.internet.MimeMessage;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -18,16 +23,20 @@ import java.util.Date;
 import java.util.Optional;
 
 @Service
+@Slf4j
 public class UserService {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(UserService.class);
     private BCryptPasswordEncoder bCryptPasswordEncoder;
     private UserRepo userRepo;
     private TokenRepo tokenRepo;
+    private JavaMailSender mailSender;
 
-    UserService(BCryptPasswordEncoder bCryptPasswordEncoder, UserRepo userRepo, TokenRepo tokenRepo){
+    UserService(BCryptPasswordEncoder bCryptPasswordEncoder, UserRepo userRepo, TokenRepo tokenRepo, JavaMailSender mailSender){
         this.bCryptPasswordEncoder=bCryptPasswordEncoder;
         this.userRepo = userRepo;
         this.tokenRepo = tokenRepo;
+        this.mailSender = mailSender;
     }
 
     public User signUp(SignUpRequestDTO signUpRequest){
@@ -37,8 +46,18 @@ public class UserService {
         user.setEmail(signUpRequest.getEmail());
         user.setIsVerified(false);
         user.setHashedPassword(bCryptPasswordEncoder.encode(signUpRequest.getPassword()));
-
-        return userRepo.save(user);
+        User savedUser = userRepo.save(user);
+        new Thread(() -> {
+            try {
+//                String Email = EncDec.encrypt(savedUser.getEmail());
+                String Email = savedUser.getEmail();
+                String fromEmail = "prashanthreddyyo@gmail.com";
+                this.sendVerificationEmail(fromEmail, savedUser.getEmail(), Email);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+        return savedUser;
     }
 
     public Token signIn(SignInRequestDTO signInRequest){
@@ -73,7 +92,7 @@ public class UserService {
 
         token.setExpiry(Timestamp.valueOf(futureDate));
         token.setUser(user);
-        token.setActive(true);
+        token.setIsActive(true);
         token.setValue(RandomStringUtils.randomAlphanumeric(128));
 
         return token;
@@ -86,12 +105,12 @@ public class UserService {
         }
 
         Token token = optionalToken.get();
-        token.setActive(false);
+        token.setIsActive(false);
         tokenRepo.save(token);
     }
 
     public User validateToken(String value){
-       Optional<Token> optionalToken = tokenRepo.findByValueAndActiveAndExpiryGreaterThan(value,true,new Date());
+        Optional<Token> optionalToken = tokenRepo.findByValueAndIsActiveAndExpiryGreaterThan(value,true,new Date());
         if(optionalToken.isEmpty()){
             throw new RuntimeException("Invalid token");
         }
@@ -99,4 +118,38 @@ public class UserService {
 
     }
 
+    public void sendVerificationEmail(String from, String to, String encEmail) {
+        String subject = "Account Verification";
+        String verificationUrl = "http://localhost:8081/user/account/validate?encEmail=" + encEmail;
+        String message = "<p>Dear User,</p>"
+                + "<p>Please click the link below to verify your account:</p>"
+                + "<a href=\"" + verificationUrl + "\">Verify your account</a>"
+                + "<p>Thank you!</p>";
+
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true);
+            helper.setFrom(from);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(message, true);
+
+            mailSender.send(mimeMessage);
+        } catch (Exception e) {
+//            e.printStackTrace();
+                log.error("error in sendVerificationEMail is ",e);
+        }
+    }
+
+    public Boolean accountValidate(String Email) throws Exception {
+//        String email = EncDec.decrypt(Email);
+        Optional<User> user = userRepo.findByEmail(Email);
+        if(user.isPresent()){
+            user.get().setIsVerified(true);
+            userRepo.save(user.get());
+            return true;
+        }//fetch user entry from email and update status as verified
+
+        return false;
+    }
 }

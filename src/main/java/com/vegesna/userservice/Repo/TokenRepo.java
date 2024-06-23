@@ -13,6 +13,6 @@ public interface TokenRepo extends JpaRepository<Token, Long> {
     Token save(Token token);
 
 
-    Optional<Token> findByValueAndActiveAndExpiryGreaterThan(String value, Boolean isValid, Date CurrentDate);
+    Optional<Token> findByValueAndIsActiveAndExpiryGreaterThan(String value, Boolean isValid, Date CurrentDate);
 
 }

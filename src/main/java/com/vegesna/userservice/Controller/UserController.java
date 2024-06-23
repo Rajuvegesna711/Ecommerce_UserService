@@ -8,8 +8,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.swing.text.html.HTML;
-
 @RestController
 @RequestMapping("/user")
 public class UserController {
@@ -50,5 +48,27 @@ public class UserController {
     public UserDTO validateToken(@PathVariable String token) {
         User user = userService.validateToken(token);
         return UserDTO.toDTO(user);
+    }
+
+    public ResponseEntity<Void> isVerified(@PathVariable String email){
+        return null;
+    }
+
+    @GetMapping("/account/validate")
+    public ResponseEntity<?> validateUser(@RequestParam String encEmail) throws Exception {
+        return ResponseEntity.ok(userService.accountValidate(encEmail));
+    }
+
+
+    public void profile(){
+
+    }
+
+    public void updateprofile(){
+
+    }
+
+    public void resetPassword(){
+
     }
 }

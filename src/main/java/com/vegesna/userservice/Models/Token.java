@@ -11,7 +11,7 @@ import java.sql.Timestamp;
 @Data
 public class Token extends BaseModel{
     private Timestamp expiry;
-    private boolean active;
+    private Boolean isActive;
     private String value;
     @ManyToOne
     private User user;
