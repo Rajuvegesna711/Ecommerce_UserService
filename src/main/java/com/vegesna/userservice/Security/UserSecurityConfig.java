@@ -82,10 +82,10 @@ public class UserSecurityConfig {
 
     @Bean
     public UserDetailsService userDetailsService() {
-        UserDetails userDetails = User.withDefaultPasswordEncoder()
+        UserDetails userDetails = User.builder()
                 .username("user")
-                .password("password")
-                .roles("USER")
+                .password("$2a$12$0lZx0tTx39eVw3m4yAdT8e8qUsCCIrHcTYJgTtp.pgzyrZBM3Y89u")
+                .roles("ADMIN")
                 .build();
 
         return new InMemoryUserDetailsManager(userDetails);
@@ -95,14 +95,14 @@ public class UserSecurityConfig {
     public RegisteredClientRepository registeredClientRepository() {
         RegisteredClient oidcClient = RegisteredClient.withId(UUID.randomUUID().toString())
                 .clientId("oidc-client")
-                .clientSecret("{noop}secret")
+                .clientSecret("$2a$12$9Tj/ub/AxtRTydFbk3vmbe9F/EtNeD4XyuuwajEkCvVG9uHlmxH6y")
                 .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
                 .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
                 .authorizationGrantType(AuthorizationGrantType.REFRESH_TOKEN)
-                .redirectUri("http://127.0.0.1:8080/login/oauth2/code/oidc-client")
+                .redirectUri("https://oauth.pstmn.io/v1/callback")
                 .postLogoutRedirectUri("http://127.0.0.1:8080/")
                 .scope(OidcScopes.OPENID)
-                .scope(OidcScopes.PROFILE)
+                .scope("ADMIN")
                 .clientSettings(ClientSettings.builder().requireAuthorizationConsent(true).build())
                 .build();
 
